@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Звіт</title>
+<meta name="theme-color" content="#4b6a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Звіт">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<style>
+/* Layout: report-type chips on top, one column of field rows, video card, preview, fixed send bar */
+:root{
+  --bg:#eef0ea; --surface:#ffffff; --fg:#1d221a; --muted:#5d6656; --line:#d3d8cb;
+  --accent:#4b6a2e; --accent-fg:#ffffff; --danger:#a5392b; --field:#f7f8f4;
+  --wa:#1f8a4c; --wa-fg:#ffffff; --warn:#8a5a12;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#141812; --surface:#1c211a; --fg:#e4e8de; --muted:#9aa391; --line:#323a2d;
+  --accent:#8fb465; --accent-fg:#13170f; --danger:#e07a6a; --field:#232a20;
+  --wa:#2fae63; --wa-fg:#08130c; --warn:#e0b25c; color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:16px;line-height:1.4;
+  padding-top:env(safe-area-inset-top,0px)}
+.wrap{max-width:560px;margin:0 auto;padding-block:14px 130px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:14px}
+header{display:flex;align-items:center;gap:12px}
+header h1{flex:1;margin:0;font-size:22px;font-weight:600}
+.types{display:flex;flex-wrap:wrap;gap:6px}
+.types button{min-height:38px;padding:0 12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);
+  border-radius:19px;font-size:14px;font-weight:500}
+.types button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:4px 14px}
+.row{display:grid;grid-template-columns:118px 1fr;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row>label{font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;overflow-wrap:anywhere}
+.ctl{display:flex;gap:6px;min-width:0}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--field);border:1px solid var(--line);
+  border-radius:7px;padding:9px 10px;width:100%;min-width:0;min-height:44px;font-size:16px}
+textarea{resize:vertical;min-height:72px}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.mono{font-family:var(--mono)}
+.prefix{flex:0 0 88px;text-transform:uppercase}
+.row.wide{grid-template-columns:1fr;gap:6px}
+.row.wide .hint{grid-column:1;margin-top:0}
+button{font:inherit;cursor:pointer;border-radius:7px;min-height:44px;-webkit-tap-highlight-color:transparent}
+.icon{flex:none;width:44px;border:1px solid var(--line);background:var(--field);color:var(--muted);font-size:18px}
+.icon[aria-expanded="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.editor{grid-column:1/-1;background:var(--field);border:1px dashed var(--line);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.editor ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.editor li{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:4px 4px 4px 10px}
+.editor li span{flex:1;min-width:0;overflow-wrap:anywhere}
+.editor li button{min-height:36px;width:36px;border:0;background:none;color:var(--danger);font-size:18px}
+.editor .empty{color:var(--muted);font-size:14px}
+.add{display:flex;gap:6px}
+.add button{flex:none;padding:0 14px;border:0;background:var(--accent);color:var(--accent-fg);font-weight:600}
+.small{flex:none;padding:0 12px;border:1px solid var(--line);background:var(--field);color:var(--fg);font-size:14px}
+.items{grid-column:1/-1;display:flex;flex-direction:column;gap:6px}
+.items .it{display:flex;gap:6px}
+.items .it span{flex:none;align-self:center;color:var(--muted);width:12px}
+.items .it button{flex:none;width:44px;border:1px solid var(--line);background:var(--field);color:var(--danger);font-size:18px}
+.items .more{align-self:flex-start;padding:0 14px;border:1px dashed var(--line);background:none;color:var(--accent);font-weight:600}
+.hint{grid-column:2;font-size:12px;color:var(--muted);margin-top:-4px}
+h2{margin:6px 0 0;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+pre{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;
+  font-family:var(--mono);font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere;-webkit-user-select:all;user-select:all}
+.vcard{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.vbtns{display:flex;gap:8px}
+.vbtns button,.vbtns label{flex:1;display:flex;align-items:center;justify-content:center;min-height:44px;border-radius:7px;
+  border:1px solid var(--line);background:var(--field);color:var(--fg);font-weight:500;cursor:pointer;font-size:16px}
+.vbtns input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.vinfo{display:flex;gap:12px;align-items:center}
+.vinfo img{width:96px;height:64px;object-fit:cover;border-radius:6px;background:var(--field);flex:none}
+.vinfo .m{flex:1;min-width:0;font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.vinfo .m b{display:block;color:var(--fg);font-weight:600;font-size:15px}
+.vinfo button{flex:none;width:44px;border:1px solid var(--line);background:var(--field);color:var(--danger);font-size:18px}
+.note{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px;color:var(--muted);display:flex;gap:10px;align-items:flex-start}
+.note b{color:var(--fg)}
+.note button{flex:none;min-height:32px;width:32px;border:0;background:none;color:var(--muted);font-size:16px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
+  padding-top:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.bar .in{max-width:560px;margin:0 auto;display:flex;gap:8px}
+.sec{flex:none;padding:0 14px;background:var(--field);color:var(--fg);border:1px solid var(--line);font-size:15px;font-weight:500}
+.wa{flex:1;border:0;background:var(--wa);color:var(--wa-fg);font-weight:600;font-size:17px}
+.next{flex:none;padding:0 14px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-size:15px}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);max-width:calc(100% - 32px);
+  background:var(--fg);color:var(--bg);padding:8px 16px;border-radius:20px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;text-align:center}
+.toast.on{opacity:1}
+@media (max-width:380px){.row{grid-template-columns:1fr;gap:6px}.hint{grid-column:1;margin-top:0}}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="h1">Звіт</h1>
+    <button class="next" id="next" type="button">Новий звіт</button>
+  </header>
+  <div class="types" id="types" role="group" aria-label="Тип звіту"></div>
+  <div class="note" id="install" hidden>
+    <div><b>Встановіть на iPhone:</b> натисніть «Поділитися» <span aria-hidden="true">⎋</span> внизу Safari → «На початковий екран». Тоді додаток відкриватиметься як звичайна програма і працюватиме без інтернету.</div>
+    <button type="button" id="installX" aria-label="Закрити">✕</button>
+  </div>
+  <div class="card" id="form"></div>
+  <h2>Відео</h2>
+  <div class="vcard">
+    <div class="vinfo" id="vinfo" hidden>
+      <img id="vthumb" alt="Кадр з відео">
+      <div class="m"><b id="vtitle">Відео прикріплено</b><span id="vmeta"></span></div>
+      <button type="button" id="vdel" aria-label="Прибрати відео">✕</button>
+    </div>
+    <div class="vbtns">
+      <label id="vpickL"><span id="vpickT">З галереї</span><input type="file" id="vfile" accept="video/*"></label>
+      <label id="vrecL">Зняти<input type="file" id="vcam" accept="video/*" capture="environment"></label>
+    </div>
+  </div>
+  <h2>Готовий текст</h2>
+  <pre id="out"></pre>
+</div>
+
+<div class="bar"><div class="in">
+  <button class="sec" id="copy" type="button">Копіювати</button>
+  <button class="wa" id="wa" type="button">У WhatsApp</button>
+  <button class="sec" id="other" type="button" aria-label="Надіслати в іншу програму">⋯</button>
+</div></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+'use strict';
+// ---------- Опис полів ----------
+// t: date | time | list | text | num | coord | area
+// g: 1 — значення спільне для всіх типів звітів (екіпаж, позиція тощо)
+const F={
+  date:{l:'Дата',t:'date',g:1},
+  time:{l:'Час',t:'time',g:1},
+  crew:{l:'Екіпаж',t:'list',g:1},
+  pos:{l:'Позиція',t:'list',g:1},
+  lead:{l:'Ведучий',t:'text',g:1},
+  asset:{l:'Засіб',t:'list',g:1},
+  akb:{l:'АКБ',t:'num',g:1},
+  sortie:{l:'Виліт',t:'num',g:1},
+  coil:{l:'Котушка',t:'text',g:1},
+  target:{l:'Ціль',t:'list',g:1},
+  area:{l:'Район виконання',t:'list',g:1},
+  zone:{l:'Зона відповідальності',t:'text',g:1},
+  coords:{l:'Координати',t:'coord'},
+  light:{l:'Підсвітка',t:'text',g:1},
+  bk:{l:'БК',t:'list',g:1},
+  dist:{l:'Відстань',t:'text',g:1,im:'decimal'},
+  result:{l:'Результат',t:'text'},
+  comment:{l:'Коментар',t:'area'},
+  nature:{l:'Характер події',t:'area',ph:'Приліт ФПВ по позиції …, що спричинило втрату майна. В момент прильоту екіпаж перебував …'},
+  crewStatus:{l:'Статус екіпажу',t:'text',ph:'4.5.0'},
+  weaponStatus:{l:'Статус особистої зброї',t:'text',ph:'4.5.0'},
+  propStatus:{l:'Статус майна',t:'list',g:1,items:true},
+  next:{l:'Подальші дії / прийняті рішення',t:'area',ph:'Що планується далі: переміщення, евакуація тощо'},
+};
+const POS_FIELDS=['date','time','crew','pos','coords','asset'];
+const EVENT_FIELDS=[...POS_FIELDS,'nature','crewStatus','weaponStatus','propStatus','next'];
+const TYPES=[
+  {id:'flight',name:'Виліт',title:'',fields:['date','time','crew','pos','lead','asset','akb','sortie','coil','target','area','zone','coords','light','bk','dist','result','comment']},
+  {id:'arrival',name:'Прибуття',title:'Прибуття',fields:[...POS_FIELDS,'result'],defaults:{result:'Прибув'}},
+  {id:'departure',name:'Вибуття',title:'Вибуття',fields:[...POS_FIELDS,'result'],defaults:{result:'Вибув'}},
+  {id:'noflight',name:'Відсутність вильотів',title:'Відсутність вильотів',fields:[...POS_FIELDS,'result','comment'],
+    ph:{result:'Несприятлива погода',comment:'Відсутність вильотів з 08:00 через …'}},
+  {id:'shelling',name:'Обстріл',title:'Обстріл',fields:EVENT_FIELDS},
+  {id:'emergency',name:'Надзвичайна подія',title:'Надзвичайна подія',fields:EVENT_FIELDS},
+];
+
+// ---------- Збереження ----------
+const KEY='flight-report-v1';
+let S={lists:{},values:{},items:{},type:'flight',coordPrefix:'',installHidden:false};
+try{const r=localStorage.getItem(KEY); if(r) S=Object.assign(S,JSON.parse(r));}catch(e){}
+S.lists=S.lists||{};S.values=S.values||{};S.items=S.items||{};
+// перехід зі старої версії: координати були одним полем
+if(S.values.coords&&!S.values['flight.coords']){
+  const m=String(S.values.coords).match(/^(.*?)(\d[\d\s]*)$/);
+  if(m){ if(!S.coordPrefix) S.coordPrefix=m[1].trim(); S.values['flight.coords']=m[2].replace(/\s+/g,' ').trim(); }
+  delete S.values.coords;
+}
+if(!S.lists.propStatus) S.lists.propStatus=['Втрачено','Пошкоджено','Без втрат'];
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+
+const T=()=>TYPES.find(t=>t.id===S.type)||TYPES[0];
+const vkey=k=>F[k].g?k:S.type+'.'+k;
+function getV(k){const v=S.values[vkey(k)]; if(v!=null) return v; const d=T().defaults; return d&&d[k]!=null?d[k]:'';}
+function setV(k,v){S.values[vkey(k)]=v;save();render();}
+
+const pad=n=>String(n).padStart(2,'0');
+const todayISO=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());};
+const nowHM=()=>{const d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes());};
+const fmtDate=iso=>{if(!iso)return'';const p=iso.split('-');return p.length===3?p[2]+'.'+p[1]+'.'+p[0]:iso;};
+function fmtDigits(v){const d=String(v).replace(/\D/g,'').slice(0,10);return d.length>5?d.slice(0,5)+' '+d.slice(5):d;}
+
+// ---------- Форма ----------
+const form=document.getElementById('form');
+function el(tag,props,kids){const e=document.createElement(tag);if(props)Object.assign(e,props);(kids||[]).forEach(k=>e.append(k));return e;}
+
+function listSelect(k){
+  const sel=el('select',{id:'f-'+k});
+  const list=S.lists[k]||[], cur=getV(k);
+  sel.append(el('option',{value:'',textContent:list.length?'— оберіть —':'— порожньо, натисніть ✎ —'}));
+  list.forEach(v=>sel.append(el('option',{value:v,textContent:v})));
+  sel.value=list.includes(cur)?cur:'';
+  if(!list.includes(cur)&&cur){S.values[vkey(k)]='';}
+  sel.onchange=()=>setV(k,sel.value);
+  return sel;
+}
+function buildEditor(k,box,refresh){
+  const list=S.lists[k]||(S.lists[k]=[]);
+  box.innerHTML='';
+  if(!list.length) box.append(el('div',{className:'empty',textContent:'Поки немає варіантів. Додайте перший.'}));
+  const ul=el('ul');
+  list.forEach((v,i)=>{
+    const b=el('button',{type:'button',textContent:'✕'});b.setAttribute('aria-label','Видалити '+v);
+    b.onclick=()=>{list.splice(i,1);if(getV(k)===v)S.values[vkey(k)]='';save();refresh();buildEditor(k,box,refresh);render();};
+    ul.append(el('li',null,[el('span',{textContent:v}),b]));
+  });
+  box.append(ul);
+  const inp=el('input',{id:'add-'+k,placeholder:'Новий варіант',autocomplete:'off'});inp.enterKeyHint='done';
+  const go=()=>{const v=inp.value.trim();if(!v)return;if(!list.includes(v))list.push(v);
+    S.values[vkey(k)]=v;save();refresh();buildEditor(k,box,refresh);render();
+    const n=document.getElementById('add-'+k);if(n)n.focus();};
+  const btn=el('button',{type:'button',textContent:'Додати',onclick:go});
+  inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();go();}};
+  box.append(el('div',{className:'add'},[inp,btn]));
+}
+function itemsBlock(){
+  const key=S.type;
+  const items=S.items[key]||(S.items[key]=[]);
+  const box=el('div',{className:'items'});
+  const draw=()=>{
+    box.innerHTML='';
+    items.forEach((v,i)=>{
+      const inp=el('input',{id:'item-'+i,value:v,placeholder:'Напр. АКБ 2*66000 mAh',autocomplete:'off'});
+      inp.oninput=()=>{items[i]=inp.value;save();render();};
+      const del=el('button',{type:'button',textContent:'✕'});del.setAttribute('aria-label','Видалити позицію');
+      del.onclick=()=>{items.splice(i,1);save();draw();render();};
+      box.append(el('div',{className:'it'},[el('span',{textContent:'–'}),inp,del]));
+    });
+    const more=el('button',{type:'button',className:'more',textContent:'+ Додати майно'});
+    more.onclick=()=>{items.push('');save();draw();render();const n=document.getElementById('item-'+(items.length-1));if(n)n.focus();};
+    box.append(more);
+  };
+  draw();
+  return box;
+}
+
+function buildForm(){
+  form.innerHTML='';
+  const t=T();
+  t.fields.forEach(k=>{
+    const f=F[k];
+    const row=el('div',{className:'row'});
+    const lab=el('label',{htmlFor:'f-'+k,textContent:f.l});
+    const ctl=el('div',{className:'ctl'});
+    row.append(lab,ctl);
+    const ph=(t.ph&&t.ph[k])||f.ph||'';
+    if(f.t==='list'){
+      let sel=listSelect(k);
+      const b=el('button',{type:'button',className:'icon',textContent:'✎'});
+      b.setAttribute('aria-label','Редагувати список «'+f.l+'»');b.setAttribute('aria-expanded','false');
+      const box=el('div',{className:'editor',hidden:true});
+      const refresh=()=>{const n=listSelect(k);sel.replaceWith(n);sel=n;};
+      b.onclick=()=>{box.hidden=!box.hidden;b.setAttribute('aria-expanded',String(!box.hidden));if(!box.hidden)buildEditor(k,box,refresh);};
+      ctl.append(sel,b);row.append(box);
+      if(f.items) row.append(itemsBlock());
+    }else if(f.t==='coord'){
+      row.classList.add('wide');
+      const pre=el('input',{id:'f-coordPrefix',className:'mono prefix',value:S.coordPrefix||'',placeholder:'37U DQ',autocomplete:'off',autocapitalize:'characters',spellcheck:false});
+      pre.setAttribute('aria-label','Зона і квадрат (запам\'ятовується)');
+      pre.oninput=()=>{S.coordPrefix=pre.value.toUpperCase();save();render();};
+      pre.onblur=()=>{pre.value=S.coordPrefix=(S.coordPrefix||'').trim().replace(/\s+/g,' ');save();render();};
+      const num=el('input',{id:'f-coords',className:'mono',value:getV(k),placeholder:'24170 11002',autocomplete:'off',inputMode:'numeric'});
+      num.oninput=()=>{const v=fmtDigits(num.value);if(num.value!==v)num.value=v;setV(k,v);};
+      ctl.append(pre,num);
+      row.append(el('div',{className:'hint',textContent:'Ліва частина запам\'ятовується. Округлення робіть самі (…000).'}));
+    }else{
+      const inp=el(f.t==='area'?'textarea':'input',{id:'f-'+k,autocomplete:'off',placeholder:ph});
+      if(f.t==='date')inp.type='date';
+      else if(f.t==='time')inp.type='time';
+      else if(f.t!=='area')inp.type='text';
+      if(f.t==='num')inp.inputMode='numeric';
+      if(f.im)inp.inputMode=f.im;
+      inp.value=getV(k);
+      inp.addEventListener((f.t==='date'||f.t==='time')?'change':'input',()=>setV(k,inp.value));
+      if(f.t==='time') inp.addEventListener('input',()=>setV(k,inp.value));
+      ctl.append(inp);
+      if(f.t==='time') ctl.append(el('button',{type:'button',className:'small',textContent:'Зараз',onclick:()=>{inp.value=nowHM();setV(k,inp.value);}}));
+      if(f.t==='date') ctl.append(el('button',{type:'button',className:'small',textContent:'Сьогодні',onclick:()=>{inp.value=todayISO();setV(k,inp.value);}}));
+    }
+    form.append(row);
+  });
+}
+
+// ---------- Типи ----------
+const typesBox=document.getElementById('types');
+function drawTypes(){
+  typesBox.innerHTML='';
+  TYPES.forEach(t=>{
+    const b=el('button',{type:'button',textContent:t.name});
+    b.setAttribute('aria-pressed',String(t.id===S.type));
+    b.onclick=()=>{if(S.type===t.id)return;S.type=t.id;save();drawTypes();buildForm();render();window.scrollTo(0,0);};
+    typesBox.append(b);
+  });
+  document.getElementById('h1').textContent=T().name;
+}
+
+// ---------- Текст ----------
+function text(){
+  const t=T(), lines=[];
+  if(t.title) lines.push(t.title);
+  t.fields.forEach(k=>{
+    const f=F[k];
+    let v=String(getV(k)||'').trim();
+    if(k==='date') v=fmtDate(v);
+    if(k==='coords') v=[(S.coordPrefix||'').trim(),v].filter(Boolean).join(' ');
+    lines.push(f.l+': '+v);
+    if(f.items) (S.items[S.type]||[]).map(s=>s.trim()).filter(Boolean).forEach(s=>lines.push('- '+s));
+  });
+  return lines.join('\n');
+}
+const out=document.getElementById('out');
+function render(){out.textContent=text();}
+
+// ---------- Повідомлення ----------
+const toast=document.getElementById('toast');let tt;
+function say(m,ms){toast.textContent=m;toast.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>toast.classList.remove('on'),ms||2000);}
+
+// ---------- Старт ----------
+S.values.date=todayISO();
+if(!S.values.time) S.values.time=nowHM();
+save();drawTypes();buildForm();render();
+
+// ---------- Відео ----------
+const A=window.Android||null;
+const vinfo=document.getElementById('vinfo'),vthumb=document.getElementById('vthumb'),vmeta=document.getElementById('vmeta'),vtitle=document.getElementById('vtitle');
+const vfile=document.getElementById('vfile'),vcam=document.getElementById('vcam');
+let hasVideo=false, webVideo=null;
+const mb=n=>(n/1048576).toFixed(n<10485760?1:0)+' МБ';
+const dur=s=>{s=Math.round(s||0);return Math.floor(s/60)+':'+pad(s%60);};
+window.onVideoBusy=b=>{ if(b){vinfo.hidden=false;vtitle.textContent='Додаю відео…';vmeta.textContent='';vthumb.removeAttribute('src');} else if(!hasVideo){vinfo.hidden=true;} };
+window.onVideo=v=>{
+  hasVideo=!!v; vinfo.hidden=!v;
+  document.getElementById('vpickT').textContent=v?'Замінити':'З галереї';
+  if(!v) return;
+  vtitle.textContent='Відео прикріплено';
+  vmeta.textContent=[v.duration!=null?dur(v.duration):'',v.size?mb(v.size):''].filter(Boolean).join(' · ');
+  if(v.thumb) vthumb.src=v.thumb; else vthumb.removeAttribute('src');
+};
+function setWebVideo(f){
+  webVideo=f||null;
+  if(!f){window.onVideo(null);return;}
+  window.onVideoBusy(true);
+  const url=URL.createObjectURL(f);
+  const v=document.createElement('video');
+  v.muted=true;v.playsInline=true;v.setAttribute('playsinline','');v.preload='metadata';
+  let done=false;
+  const finish=thumb=>{if(done)return;done=true;
+    window.onVideo({size:f.size,duration:isFinite(v.duration)?v.duration:null,thumb});
+    setTimeout(()=>URL.revokeObjectURL(url),1000);};
+  v.onloadedmetadata=()=>{try{v.currentTime=Math.min(0.5,(v.duration||1)/2);}catch(e){finish(null);}};
+  v.onseeked=()=>{try{const c=document.createElement('canvas');c.width=320;
+    c.height=Math.max(1,Math.round(320*(v.videoHeight||180)/(v.videoWidth||320)));
+    c.getContext('2d').drawImage(v,0,0,c.width,c.height);finish(c.toDataURL('image/jpeg',.7));}catch(e){finish(null);}};
+  v.onerror=()=>finish(null);
+  setTimeout(()=>finish(null),5000);
+  v.src=url;
+}
+function clearVideo(){ if(A) A.clearVideo(); else {vfile.value='';vcam.value='';setWebVideo(null);} }
+if(A){
+  // Android-застосунок: відео через рідний вибір/камеру
+  document.getElementById('vpickL').addEventListener('click',e=>{e.preventDefault();A.pickVideo();});
+  document.getElementById('vrecL').addEventListener('click',e=>{e.preventDefault();A.recordVideo();});
+  A.requestVideoInfo();
+}else{
+  vfile.onchange=()=>{if(vfile.files[0])setWebVideo(vfile.files[0]);vcam.value='';};
+  vcam.onchange=()=>{if(vcam.files[0])setWebVideo(vcam.files[0]);vfile.value='';};
+}
+document.getElementById('vdel').onclick=clearVideo;
+
+// ---------- Копіювання та надсилання ----------
+function copyText(t,silent){
+  if(A){A.copy(t);if(!silent)say('Скопійовано');return;}
+  const fallback=()=>{const r=document.createRange();r.selectNodeContents(out);const s=getSelection();s.removeAllRanges();s.addRange(r);
+    let ok=false;try{ok=document.execCommand('copy');}catch(e){}
+    if(!silent) say(ok?'Скопійовано':'Текст виділено — скопіюйте через меню');};
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(t).then(()=>{if(!silent)say('Скопійовано');},()=>{if(!silent)fallback();});
+    }else fallback();
+  }catch(e){fallback();}
+}
+document.getElementById('copy').onclick=()=>copyText(text());
+
+async function webShare(t,toWhatsApp){
+  copyText(t,true);
+  if(webVideo){
+    const files=[webVideo];
+    if(navigator.canShare&&navigator.canShare({files})){
+      try{ await navigator.share({files,text:t}); say('Якщо текст не підставився — вставте його як підпис (він скопійований)',4000); }
+      catch(e){ if(e&&e.name!=='AbortError') say('Не вдалося надіслати: '+(e.message||e.name)); }
+    }else say('Цей браузер не вміє надсилати відео. Оновіть iOS / Chrome.',4000);
+    return;
+  }
+  if(toWhatsApp){ location.href='whatsapp://send?text='+encodeURIComponent(t); return; }
+  if(navigator.share){ try{await navigator.share({text:t});}catch(e){} }
+  else say('Текст скопійовано');
+}
+document.getElementById('wa').onclick=()=>{
+  const t=text();
+  if(A){A.share(t);say('Текст також скопійовано');}
+  else webShare(t,true);
+};
+document.getElementById('other').onclick=()=>{
+  const t=text();
+  if(A) A.shareOther(t); else webShare(t,false);
+};
+
+// ---------- Новий звіт ----------
+document.getElementById('next').onclick=()=>{
+  const t=T();
+  t.fields.forEach(k=>{ if(!F[k].g && !(k==='coords'&&t.id!=='flight')) delete S.values[vkey(k)]; });
+  S.items[t.id]=[];
+  if(t.id==='flight'){
+    const n=parseInt(S.values.sortie,10);
+    S.values.sortie=isNaN(n)?'1':String(n+1);
+    ['coil','light','dist'].forEach(k=>S.values[k]='');
+  }
+  S.values.date=todayISO();S.values.time=nowHM();
+  save();clearVideo();buildForm();render();window.scrollTo(0,0);
+  say(t.id==='flight'?'Виліт №'+S.values.sortie:'Новий звіт');
+};
+
+// ---------- Встановлення як програми (iPhone) ----------
+const standalone=window.navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+if(!A&&isIOS&&!standalone&&!S.installHidden) document.getElementById('install').hidden=false;
+document.getElementById('installX').onclick=()=>{S.installHidden=true;save();document.getElementById('install').hidden=true;};
+if(!A&&'serviceWorker' in navigator&&location.protocol==='https:'){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
